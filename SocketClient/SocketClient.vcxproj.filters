@@ -23,5 +23,8 @@
     <ClInclude Include="package.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="thread_msg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -2,23 +2,11 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <process.h>
+#include <iup.h>
 #include "package.h"
+#include "thread_msg.h"
 
 #pragma comment(lib,"ws2_32.lib")
-
-//进程消息
-#define TMSG_REQ_TIME WM_USER+1
-#define TMSG_REQ_NAME WM_USER+2
-#define TMSG_REQ_LIST WM_USER+3
-#define TMSG_SEND_MSG WM_USER+4
-#define TMSG_DISCONNECT WM_USER+5
-#define TMSG_RECV_TIME WM_USER+6
-#define TMSG_RECV_NAME WM_USER+7
-#define TMSG_RECV_LIST WM_USER+8
-#define TMSG_RECV_MSG WM_USER+9
-#define TMSG_RECV_MSG_FEEDBACK WM_USER+10
-#define TMSG_FAIL WM_USER+11
-#define TMSG_REQ_TIME100 WM_USER+12
 
 //子线程 handle
 HANDLE hEvent;
@@ -30,7 +18,7 @@ int request_time();
 int request_hostname();
 int request_clientlist();
 int send_message();
-
+/*
 DWORD WINAPI socket_thread(LPVOID pm)
 {
 	SOCKET s_client;//连接套接字
@@ -131,7 +119,7 @@ void test()
 	
 	return;
 }
-
+*/
 int main(int argc, char *argv[])
 {
 	WORD w_version_requested;
@@ -156,6 +144,7 @@ int main(int argc, char *argv[])
 		printf("Invalid Winsock version!\n");
 		return -1;
 	}
+	/*
 	if (1)
 	{
 		handle_socket = (HANDLE)_beginthreadex(NULL, 0, (LPTHREAD_START_ROUTINE)ThrdFunc, NULL, 0, &id_socket);
@@ -166,9 +155,12 @@ int main(int argc, char *argv[])
 		}
 
 	}
+	*/
 	WSACleanup();
-	printf("common: thread %d",
-		GetCurrentThreadId());
+	printf("common: thread %d",GetCurrentThreadId());
 	getchar();
+	IupOpen(&argc, &argv);
+	IupMessage("test", "test");
+	IupClose();
 	return 0;
 }
