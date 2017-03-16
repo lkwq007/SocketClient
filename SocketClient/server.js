@@ -9,7 +9,7 @@ net.createServer(function(sock) {
 
     sock.on('data', function(data) {
         console.log('DATA ' + sock.remoteAddress + ': ' + data);
-        sock.write('You said "' + data + '"');
+        sock.write(data);
     });
 
     sock.on('close', function(data) {
