@@ -11,6 +11,7 @@
 #pragma comment(lib,"ws2_32.lib")
 
 DWORD id_main;
+HWND hwnd_main;
 HANDLE handle_send, handle_recv, handle_socket[2];
 DWORD id_send, id_recv;
 int server_port = 8100;
@@ -70,7 +71,8 @@ DWORD WINAPI socket_send(LPVOID pm)
 				header.length = strlen((char*)msg.wParam) + 1;
 				break;
 			case TMSG_DISCONNECT:
-				closesocket(s_client);
+				shutdown(s_client, SD_SEND);
+				//closesocket(s_client);
 				return 0;
 			}
 			if (send_x100)
@@ -86,19 +88,31 @@ DWORD WINAPI socket_send(LPVOID pm)
 					ret = send(s_client, (char *)&header, sizeof(header), 0);
 					if (ret == SOCKET_ERROR)
 					{
-						printf("send() failed!\n");
+						log_writeln("Send header fail");
+						sprintf(buf, "WSA Error: %d", WSAGetLastError());
+						log_writeln(buf);
+						//return 0;
+						//printf("send() failed!\n");
 					}
 					else
+					{
 						printf("send!\n");
+					}
 					if (header.length > 0)
 					{
 						ret = send(s_client, (char*)msg.wParam, (header.length) * sizeof(char), 0);
 						if (ret == SOCKET_ERROR)
 						{
-							printf("send() failed!\n");
+							log_writeln("Send body fail");
+							sprintf(buf, "WSA Error: %d", WSAGetLastError());
+							log_writeln(buf);
+							//return 0;
+							//printf("send() failed!\n");
 						}
 						else
+						{
 							printf("send!\n");
+						}
 					}
 				}
 			
@@ -113,10 +127,16 @@ DWORD WINAPI socket_recv(LPVOID pm)
 	int ret;
 	pkg_header header;
 	char *header_ptr = (char *)&header;
-	char buf[1001], *buf_ptr;
+	char *buf,*buf_ptr;
+	char info[101];
+	//char buf[1001], *buf_ptr;
 	int stream_left;
 	while (1)
 	{
+		if(!connect_state)
+		{
+			return 0;
+		}
 		stream_left = sizeof(pkg_header);
 		header_ptr = (char *)&header;
 		while (stream_left > 0)
@@ -124,23 +144,26 @@ DWORD WINAPI socket_recv(LPVOID pm)
 			ret = recv(s_client, header_ptr, stream_left, 0);
 			if (ret == SOCKET_ERROR)
 			{
-				printf("recv() fail");
+				log_writeln("Recv header fail");
+				sprintf(info, "WSA Error: %d", WSAGetLastError());
+				log_writeln(info);
 				return 0;
-				break;
 			}
 			if (ret == 0)
 			{
-				printf("connection closed!");
+				log_writeln("Connection closed!");
+				return 0;
 			}
 			stream_left -= ret;
 			header_ptr += ret;
 		}
 		if (stream_left == 0)
 		{
-			printf("%d l:%d", header.type, header.length);
+			printf(info,"type:%d len:%d ", header.type, header.length);
 		}
 		if (header.length > 0)
 		{
+			buf = (char *)malloc(header.length * sizeof(char));
 			buf_ptr = buf;
 			stream_left = header.length;
 			while (stream_left > 0)
@@ -148,21 +171,51 @@ DWORD WINAPI socket_recv(LPVOID pm)
 				ret = recv(s_client, buf_ptr, stream_left, 0);
 				if (ret == SOCKET_ERROR)
 				{
-					printf("recv() fail");
-					printf("%d", WSAGetLastError());
+					log_writeln("Recv body fail");
+					sprintf(info,"WSA Error: %d", WSAGetLastError());
+					log_writeln(info);
 					return 0;
-					break;
 				}
 				if (ret == 0)
 				{
-					printf("connection closed!");
+					log_writeln("Connection closed!");
+					return 0;
 				}
 				stream_left -= ret;
 				buf_ptr += ret;
 			}
 			if (stream_left == 0)
 			{
-				printf(" %s ", buf);
+				switch (header.type)
+				{
+				case TYPE_RES_TIME:
+					log_writeln("Recv time: ");
+					log_write(buf);
+					//PostThreadMessage(id_main, TMSG_RECV_TIME, (WPARAM)buf, 0);
+					break;
+				case TYPE_RES_NAME:
+					log_writeln("Recv name: ");
+					log_write(buf);
+					//PostThreadMessage(id_main, TMSG_RECV_NAME, (WPARAM)buf, 0);
+					break;
+				case TYPE_RES_CLIENTLIST:
+					log_writeln("Recv list: ");
+					log_writeln(buf);
+					//PostThreadMessage(id_main, TMSG_RECV_LIST, (WPARAM)buf, 0);
+					break;
+				case TYPE_RECV_MESSAGE:
+					log_writeln("Recv msg: ");
+					log_writeln(buf);
+					//PostThreadMessage(id_main, TMSG_RECV_MSG, (WPARAM)buf, 0);
+					break;
+				default:
+					log_writeln("Recv msg: ");
+					log_writeln(buf);
+					//PostMessage(hwnd_main, TMSG_RECV_MSG, (WPARAM)buf, 0);
+					//printf("%d",PostThreadMessage(id_main, TMSG_RECV_MSG, (WPARAM)buf, 0));
+					break;
+				}
+				//printf("data: %s ", buf);
 			}
 		}
 	}
@@ -173,6 +226,7 @@ int exit_cb(void)
 {
 	if (connect_state)
 	{
+		shutdown(s_client, SD_BOTH);
 		closesocket(s_client);
 	}
 	return IUP_CLOSE;
@@ -216,8 +270,9 @@ static int idle(void)
 			log_writeln("Send fail!");
 			break;
 		}
+		free((char *)msg.wParam);
 	}
-	printf("a");
+	//printf("idle");
 	return IUP_DEFAULT;
 }
 
@@ -264,18 +319,19 @@ int iup_connect(void)
 		}
 		else
 		{
-			connect_state = 0;
+			connect_state = 1;
 			handle_socket[0] = (HANDLE)_beginthreadex(NULL, 0, (LPTHREAD_START_ROUTINE)socket_send, NULL, 0, &id_send);
 			handle_socket[1] = (HANDLE)_beginthreadex(NULL, 0, (LPTHREAD_START_ROUTINE)socket_recv, NULL, 0, &id_recv);
 			if (!handle_socket[0] || !handle_socket[1])
 			{
 				log_writeln("Error creating threads!");
+				connect_state = 0;
 			}
 			else
 			{
 				IupSetAttribute(item_connect, "TITLE", "Disconnect");
-				connect_state = 1;
-				logwriteln("Connection established!");
+				//connect_state = 1;
+				log_writeln("Connection established!");
 				//IupSetFunction("IDLE_ACTION", (Icallback)idle);
 			}
 		}
@@ -432,6 +488,7 @@ int main(int argc, char *argv[])
 	IupSetAttributeHandle(dlg, "MENU", menu);
 	IupSetAttribute(dlg, "TITLE", "Socket Client");
 	IupSetAttribute(dlg, "SIZE", "HALFxHALF");
+	hwnd_main = IupGetAttribute(dlg, "HWND");
 
 	IupShowXY(dlg, IUP_CENTER, IUP_CENTER);
 	IupSetAttribute(dlg, "USERSIZE", NULL);
