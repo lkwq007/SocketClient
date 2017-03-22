@@ -21,7 +21,7 @@ struct sockaddr_in sa_server;//µÿ÷∑–≈œ¢
 int send_x100 = 0, connect_state = 0;
 
 Ihandle *dlg, *vbox, *hbox;
-Ihandle *text_log, *text_ip, *text_port, *text_msg;
+Ihandle *text_log, *text_ip, *text_port, *text_msg, *text_target;
 Ihandle *toggle;
 Ihandle *menu, *item_connect, *item_time, *item_name, *item_list, *item_msg, *item_disconnect, *item_exit;
 
@@ -42,8 +42,9 @@ DWORD WINAPI socket_send(LPVOID pm)
 {
 	MSG msg;
 	BOOL msg_ret;
-	int ret, type;
+	int ret;
 	pkg_header header;
+	msg_header header_message;
 	char *header_ptr = (char *)&header;
 	char buf[1001], *buf_ptr;
 	int i,total;
@@ -270,7 +271,7 @@ static int idle(void)
 			log_writeln("Recv msg: ");
 			log_writeln((char *)msg.wParam);
 			break;
-		case TMSG_RECV_MSG_FEEDBACK:
+		case TMSG_MSG_FEEDBACK:
 			log_writeln("Msg sent feedback: ");
 			log_write((char *)msg.wParam);
 			break;
@@ -413,8 +414,6 @@ int main(int argc, char *argv[])
 	WORD w_version_requested;
 	WSADATA wsa_data;
 	int ret;
-	int type;
-	char buf[1001];
 
 	id_main = GetCurrentThreadId();
 
@@ -448,7 +447,7 @@ int main(int argc, char *argv[])
 	IupSetAttribute(text_log, "MULTILINE", "YES");
 	IupSetAttribute(text_log, "EXPAND", "YES");
 	IupSetAttribute(text_log, "READONLY", "YES");
-	// port
+	// ip
 	text_ip = IupText(NULL);
 	IupSetAttribute(text_ip, "VISIBLECOLUMNS", "18");
 	IupSetAttribute(text_ip, "VALUE", "127.0.0.1");
@@ -456,6 +455,9 @@ int main(int argc, char *argv[])
 	text_port = IupText(NULL);
 	IupSetAttribute(text_port, "VISIBLECOLUMNS", "8");
 	IupSetAttribute(text_port, "VALUE", "8100");
+	// target
+	text_target = IupText(NULL);
+	IupSetAttribute(text_target, "VISIBLECOLUMNS", "4");
 	// msg
 	text_msg = IupText(NULL);
 	IupSetAttribute(text_msg, "EXPAND", "HORIZONTAL");
@@ -485,7 +487,7 @@ int main(int argc, char *argv[])
 
 	vbox = IupVbox(
 		IupHbox(IupLabel("IP: "), text_ip, IupLabel("Port: "), text_port, toggle, NULL),
-		IupHbox(IupLabel("Message: "), text_msg, NULL),
+		IupHbox(IupLabel("Target: "), text_target, IupLabel("Message: "), text_msg, NULL),
 		IupVbox(IupLabel("Log: "), text_log, NULL),
 		NULL);
 	IupSetAttribute(vbox, "GAP", "3");
@@ -496,7 +498,7 @@ int main(int argc, char *argv[])
 	IupSetAttributeHandle(dlg, "MENU", menu);
 	IupSetAttribute(dlg, "TITLE", "Socket Client");
 	IupSetAttribute(dlg, "SIZE", "HALFxHALF");
-	hwnd_main = IupGetAttribute(dlg, "HWND");
+	//hwnd_main = IupGetAttribute(dlg, "HWND");
 
 	IupShowXY(dlg, IUP_CENTER, IUP_CENTER);
 	IupSetAttribute(dlg, "USERSIZE", NULL);

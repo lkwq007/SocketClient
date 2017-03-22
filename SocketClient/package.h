@@ -13,7 +13,13 @@
 typedef struct pkg_header_
 {
 	char type;
-	long long length;
+	__int64 length;
 } pkg_header;
+
+typedef struct msg_header_
+{
+	__int32 source;
+	__int32 target;
+} msg_header;
 
 #endif // !PACKAGE_H_
