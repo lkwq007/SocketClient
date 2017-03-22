@@ -55,20 +55,24 @@ DWORD WINAPI socket_send(LPVOID pm)
 			switch (msg.message)
 			{
 			case TMSG_REQ_TIME:
-				header.type = TYPE_REQ_TIME;
+				header.type = TYPE_TIME;
 				header.length = 0;
 				break;
 			case TMSG_REQ_NAME:
-				header.type = TYPE_REQ_NAME;
+				header.type = TYPE_NAME;
 				header.length = 0;
 				break;
 			case TMSG_REQ_LIST:
-				header.type = TYPE_REQ_CLIENTLIST;
+				header.type = TYPE_CLIENTLIST;
 				header.length = 0;
 				break;
 			case TMSG_REQ_SEND_MSG:
-				header.type = TYPE_SEND_MESSAGE;
+				header.type = TYPE_MESSAGE;
 				header.length = strlen((char*)msg.wParam) + 1;
+				break;
+			case TMSG_MSG_FEEDBACK:
+				header.type = TYPE_FEEDBACK;
+				header.length = 0;
 				break;
 			case TMSG_DISCONNECT:
 				shutdown(s_client, SD_SEND);
@@ -188,25 +192,29 @@ DWORD WINAPI socket_recv(LPVOID pm)
 			{
 				switch (header.type)
 				{
-				case TYPE_RES_TIME:
+				case TYPE_TIME:
 					log_writeln("Recv time: ");
 					log_write(buf);
 					//PostThreadMessage(id_main, TMSG_RECV_TIME, (WPARAM)buf, 0);
 					break;
-				case TYPE_RES_NAME:
+				case TYPE_NAME:
 					log_writeln("Recv name: ");
 					log_write(buf);
 					//PostThreadMessage(id_main, TMSG_RECV_NAME, (WPARAM)buf, 0);
 					break;
-				case TYPE_RES_CLIENTLIST:
+				case TYPE_CLIENTLIST:
 					log_writeln("Recv list: ");
 					log_writeln(buf);
 					//PostThreadMessage(id_main, TMSG_RECV_LIST, (WPARAM)buf, 0);
 					break;
-				case TYPE_RECV_MESSAGE:
+				case TYPE_MESSAGE:
 					log_writeln("Recv msg: ");
 					log_writeln(buf);
 					//PostThreadMessage(id_main, TMSG_RECV_MSG, (WPARAM)buf, 0);
+					break;
+				case TYPE_FEEDBACK:
+					log_writeln("Msg sent feeback:");
+					log_writeln(buf);
 					break;
 				default:
 					log_writeln("Recv msg: ");
