@@ -2,6 +2,8 @@
 
 基于 Winsock2 编程接口和 IUP 图形库的 Socket 客户端。
 
+Server: https://github.com/lkwq007/SocketServer
+
 ## Screenshots
 
 ![init](https://cloud.githubusercontent.com/assets/1665437/24902539/12ace274-1edd-11e7-87c0-b5d6dfa90f7d.png)
