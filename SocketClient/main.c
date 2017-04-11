@@ -47,7 +47,7 @@ DWORD WINAPI socket_send(LPVOID pm)
 	msg_header header_message;
 	char *header_ptr = (char *)&header;
 	char buf[1001], *buf_ptr;
-	int i,total;
+	int i, total;
 	while (1)
 	{
 		msg_ret = GetMessage(&msg, NULL, TMSG_REQ_TIME, TMSG_REQ_TIME100);
@@ -84,7 +84,7 @@ DWORD WINAPI socket_send(LPVOID pm)
 				header.length = 0;
 				header.source = ((msg_header *)msg.wParam)->source;
 				header.target = ((msg_header *)msg.wParam)->target;
-				
+
 				//printf("feedback!");
 				break;
 			case TMSG_DISCONNECT:
@@ -101,12 +101,28 @@ DWORD WINAPI socket_send(LPVOID pm)
 			{
 				total = 1;
 			}
-				for (i = 0; i < total; i++)
+			for (i = 0; i < total; i++)
+			{
+				ret = send(s_client, (char *)&header, sizeof(header), 0);
+				if (ret == SOCKET_ERROR)
 				{
-					ret = send(s_client, (char *)&header, sizeof(header), 0);
+					log_writeln("Send header fail");
+					sprintf(buf, "WSA Error: %d", WSAGetLastError());
+					log_writeln(buf);
+					//return 0;
+					//printf("send() failed!\n");
+				}
+				else
+				{
+					printf("send!\n");
+				}
+				if (header.length > 0)
+				{
+
+					ret = send(s_client, (char*)msg.wParam, (header.length) * sizeof(char), 0);
 					if (ret == SOCKET_ERROR)
 					{
-						log_writeln("Send header fail");
+						log_writeln("Send body fail");
 						sprintf(buf, "WSA Error: %d", WSAGetLastError());
 						log_writeln(buf);
 						//return 0;
@@ -116,25 +132,9 @@ DWORD WINAPI socket_send(LPVOID pm)
 					{
 						printf("send!\n");
 					}
-					if (header.length > 0)
-					{
-						
-						ret = send(s_client, (char*)msg.wParam, (header.length) * sizeof(char), 0);
-						if (ret == SOCKET_ERROR)
-						{
-							log_writeln("Send body fail");
-							sprintf(buf, "WSA Error: %d", WSAGetLastError());
-							log_writeln(buf);
-							//return 0;
-							//printf("send() failed!\n");
-						}
-						else
-						{
-							printf("send!\n");
-						}
-					}
 				}
-			
+			}
+
 			free((char*)msg.wParam);
 		}
 	}
@@ -146,14 +146,14 @@ DWORD WINAPI socket_recv(LPVOID pm)
 	int ret;
 	pkg_header header;
 	char *header_ptr = (char *)&header;
-	char *buf,*buf_ptr;
+	char *buf, *buf_ptr;
 	char info[101];
 	//char buf[1001], *buf_ptr;
 	int stream_left;
 	msg_header *temp;
 	while (1)
 	{
-		if(!connect_state)
+		if (!connect_state)
 		{
 			closesocket(s_client);
 			return 0;
@@ -208,7 +208,7 @@ DWORD WINAPI socket_recv(LPVOID pm)
 				if (ret == SOCKET_ERROR)
 				{
 					log_writeln("Recv body fail");
-					sprintf(info,"WSA Error: %d", WSAGetLastError());
+					sprintf(info, "WSA Error: %d", WSAGetLastError());
 					log_writeln(info);
 					if (connect_state)
 					{
@@ -352,7 +352,7 @@ static int idle(void)
 
 int iup_connect(void)
 {
-	char buf[101],*str;
+	char buf[101], *str;
 	int ret;
 	if (connect_state)
 	{
@@ -459,11 +459,11 @@ int iup_msg(void)
 {
 	char *new_msg;
 	int count = IupGetInt(text_msg, "COUNT");
-	int target= IupGetInt(text_target, "VALUE");
+	int target = IupGetInt(text_target, "VALUE");
 	char *str = IupGetAttribute(text_msg, "VALUE");
 	new_msg = (char *)malloc((count + 1) * sizeof(char));
 	strcpy(new_msg, str);
-	
+
 	if (connect_state)
 	{
 		log_writeln("Sending msg...");
